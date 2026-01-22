@@ -14,8 +14,8 @@
 ## 📂 Project Files & Documentation
 Access the full project resources below:
 
-* [📄 **Full Project Report**](docs/Report.pdf) - Detailed technical breakdown of logic phases and safety constraints.
-* [📊 **Presentation Slides**](docs/Presentation.pptx) - Project defense and overview.
+* [📄 **Full Project Report**](Report.pdf) - Detailed technical breakdown of logic phases and safety constraints.
+* [📊 **Presentation Slides**](Rocket Test Stand Technical Presentation.pptx) - Project defense and overview.
 * [💻 **PLCnext Source Code**](src/PLCNextEngineer_code) - Complete project directory for Phoenix Contact PLCnext Engineer.
 
 ---
@@ -78,5 +78,6 @@ WarmupVar := Oxidizer_Valve AND NOT Temp_safe;
 TON3(IN := WarmupVar, PT := T#10s, Q => Ox_Warmup);
 
 Fuel_Valve := Oxidizer_Valve AND (Temp_safe OR Ox_Warmup) AND NOT Abort_Active;
+
 
 
