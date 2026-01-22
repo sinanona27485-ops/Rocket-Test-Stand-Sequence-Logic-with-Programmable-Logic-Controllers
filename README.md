@@ -7,7 +7,8 @@
 ## 📺 HMI System Demo
 **Watch the full sequence execution and HMI visualization:**
 
-> **[▶️ Click here to watch the HMI Usage Video](assets/PLC_Term.mp4)**
+
+https://github.com/user-attachments/assets/f2ad2a78-e9fc-4fa5-8fe1-44d97f67150f
 
 ---
 
@@ -15,7 +16,7 @@
 Access the full project resources below:
 
 * [📄 **Full Project Report**](Report.pdf) - Detailed technical breakdown of logic phases and safety constraints.
-* [📊 **Presentation Slides**](Rocket Test Stand Technical Presentation.pptx) - Project defense and overview.
+* [📊 **Presentation Slides**](docs/Rocket%20Test%20Stand%20Technical%20Presentation.pptx) - Project defense and overview.
 * [💻 **PLCnext Source Code**](src/PLCNextEngineer_code) - Complete project directory for Phoenix Contact PLCnext Engineer.
 
 ---
@@ -78,6 +79,7 @@ WarmupVar := Oxidizer_Valve AND NOT Temp_safe;
 TON3(IN := WarmupVar, PT := T#10s, Q => Ox_Warmup);
 
 Fuel_Valve := Oxidizer_Valve AND (Temp_safe OR Ox_Warmup) AND NOT Abort_Active;
+
 
 
 
