@@ -1,0 +1,89 @@
+(* ============================================================ *)
+(* PHASE 1: PRE-LAUNCH SAFETY & ARMING                    *)
+(* ============================================================ *)
+
+// System Arming Latch (Start/Stop Logic)
+System_Armed := (Start_Button OR System_Armed) AND NOT Stop_Button AND NOT Abort_Active;
+
+// --- Pressure Checks ---
+Fuel_Pres_OK     := GE(Fuel_Pres_sensor, fuel_Min_Limit);
+Oxidizer_Pres_OK := GE(Oxidizer_Pres_Sensor, Oxidizer_Min_Limit);
+
+// Cockpit Pressure Window (Must be between Min and Max)
+Cockpit_pres_G   := GE(Cockpit_Pres_Sensor, Cockpit_Min);
+Cockpit_pres_L   := LE(Cockpit_Pres_Sensor, Cockpit_Max);
+Cockpit_pres_OK  := Cockpit_pres_G AND Cockpit_pres_L;
+
+// Nitrogen Supply Check
+N2_Supply_OK     := GE(N2_Supply_Sensor, N2_Required_Pressure);
+
+// --- Wind Speed Window ---
+Wind_unsafe := GT(Wind_Speed_Sensor, 30.0);
+Wind_safe   := LT(Wind_Speed_Sensor, 25.0);
+Wind_OK     := Wind_safe AND NOT Wind_unsafe;
+
+// --- Global Safety Permissive ---
+Safety_OK := Fuel_Pres_OK AND Cockpit_pres_OK AND N2_Supply_OK AND Oxidizer_Pres_OK AND Wind_OK;
+
+
+(* ============================================================ *)
+(* PHASE 2: SYSTEM PURGE & STABILIZATION                  *)
+(* ============================================================ *)
+
+// Nitrogen Purge Timer (7.5 Seconds)
+TON1(IN := (Safety_OK AND Start_Phase2), PT := T#7500ms, Q => Purge_timer, ET => ET1);
+
+// Open Valve Logic: Open only while Phase 2 is active but Purge is NOT finished
+Open_Valve := Start_Phase2 AND NOT Purge_timer;
+
+// Mechanical Settle Timer (3.0 Seconds after purge finishes)
+TON2(IN := Purge_timer, PT := T#3000ms, Q => Settle_timer, ET => ET2);
+
+// Phase 2 Complete Flag
+Phase2_comp := Settle_timer;
+
+
+(* ============================================================ *)
+(* PHASE 3: VALVE SEQUENCING & CRYOGENIC WARMUP           *)
+(* ============================================================ *)
+
+// Open Oxidizer Valve
+Oxidizer_Valve := Phase2_comp AND NOT Abort_Active;
+
+// Valve Actuation Watchdog (1.0 Second)
+TON5(IN := Oxidizer_Valve, PT := T#1000ms, Q => Valve_timer, ET => ET6);
+
+// Latch: Check if Valve physically opened within the time window
+Ox_valve_check := (Ox_valve AND NOT Valve_timer) OR Ox_valve_check;
+
+// Temperature Safety Check (Cryogenic)
+Temp_safe := GE(Ox_Temp, Ox_Min_Temp);
+
+// Warmup Logic: If temp is unsafe, trigger warmup mode
+WarmupVar := Oxidizer_Valve AND NOT Temp_safe;
+
+// Warmup Timer (10.0 Seconds)
+TON3(IN := WarmupVar, PT := T#10000ms, Q => Ox_Warmup, ET => ET4);
+
+// Fuel Valve Actuation Permissive
+Fuel_Valve := Oxidizer_Valve AND (Temp_safe OR Ox_Warmup) AND Ox_valve_check AND NOT Abort_Active;
+
+// Phase 3 Complete Flag
+Phase3_comp := Fuel_Valve;
+
+
+(* ============================================================ *)
+(* PHASE 4: IGNITION & RUN STATE                          *)
+(* ============================================================ *)
+
+// Ignition Delay/Sequencer (1.0 Second)
+TON7(IN := Phase3_comp, PT := T#1000ms, Q => Igniter, ET => ET4); 
+
+// Flame Detection Watchdog (1.0 Second after Igniter)
+TON4(IN := Igniter, PT := T#1000ms, Q => Flame_timer, ET => ET5);
+
+// Flame Sensor Latch
+Flame_check := (Flame AND Flame_timer) OR Flame_check;
+
+// Final Run State
+Run_State := Phase3_comp AND Flame_check AND Start_rocket;
